@@ -1,33 +1,14 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
 
-interface PasswordRow {
-  id: number;
-  value: string;
-}
-
-// Internal helper to get the password row, creating a default if none exists.
-// Uses "INSERT ... RETURNING" to be atomic and avoid transaction visibility issues.
-async function getPasswordRow(): Promise<PasswordRow> {
-  // First, try to select the existing row.
-  const result = await db.query`SELECT id, value FROM passwords LIMIT 1`;
-  if (result.rows && result.rows.length > 0) {
-    return result.rows[0] as PasswordRow;
+// Internal helper to get the password. It assumes the password row has been seeded.
+async function getPassword(): Promise<string> {
+  const result = await db.query`SELECT value FROM passwords LIMIT 1`;
+  if (!result.rows || result.rows.length === 0) {
+    // This should not happen if the migration has run correctly.
+    throw new Error("Default password not found in database.");
   }
-
-  // No password found, so create the default one and return it in one step.
-  const defaultPassword = "admin";
-  const newRow = await db.queryRow<PasswordRow>`
-    INSERT INTO passwords (value)
-    VALUES (${defaultPassword})
-    RETURNING id, value
-  `;
-
-  if (!newRow) {
-      // This should be impossible if the INSERT succeeded.
-      throw new Error("Failed to create or retrieve default password.");
-  }
-  return newRow;
+  return result.rows[0].value as string;
 }
 
 // Params for the verify endpoint
@@ -54,7 +35,7 @@ export const verify = api<VerifyParams, VerifyResponse>(
     if (!password) {
       return { valid: false };
     }
-    const { value: storedPassword } = await getPasswordRow();
+    const storedPassword = await getPassword();
     return { valid: password === storedPassword };
   }
 );
@@ -96,7 +77,12 @@ export const update = api<UpdateParams, UpdateResponse>(
       };
     }
 
-    const { id, value: storedPassword } = await getPasswordRow();
+    const result = await db.query`SELECT id, value FROM passwords LIMIT 1`;
+    if (!result.rows || result.rows.length === 0) {
+      // This should not happen if the migration has run correctly.
+      return { success: false, message: "No password is set up." };
+    }
+    const { id, value: storedPassword } = result.rows[0];
 
     if (oldPassword !== storedPassword) {
       return { success: false, message: "The old password is not correct." };
