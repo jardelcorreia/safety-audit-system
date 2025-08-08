@@ -33,8 +33,6 @@ export const verify = api<VerifyParams, VerifyResponse>(
     expose: true,
     method: "POST",
     path: "/password/verify",
-    auth: false,
-    crossOrigin: true,
   },
   async ({ password }) => {
     if (!password) {
@@ -66,8 +64,6 @@ export const update = api<UpdateParams, UpdateResponse>(
     expose: true,
     method: "POST",
     path: "/password/update",
-    auth: false,
-    crossOrigin: true,
   },
   async ({ oldPassword, newPassword }) => {
     if (!oldPassword || !newPassword) {
