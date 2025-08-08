@@ -1,17 +1,14 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
 
-// Internal helper to get the password, creating a default if none exists.
+// Internal helper to get the password. It assumes the password row has been seeded.
 async function getPassword(): Promise<string> {
   const result = await db.query`SELECT value FROM passwords LIMIT 1`;
-  if (result.rows && result.rows.length > 0) {
-    return result.rows[0].value as string;
+  if (!result.rows || result.rows.length === 0) {
+    // This should not happen if the migration has run correctly.
+    throw new Error("Default password not found in database.");
   }
-
-  // No password found, so create the default one.
-  const defaultPassword = "admin";
-  await db.query`INSERT INTO passwords (value) VALUES (${defaultPassword})`;
-  return defaultPassword;
+  return result.rows[0].value as string;
 }
 
 // Params for the verify endpoint
@@ -82,7 +79,7 @@ export const update = api<UpdateParams, UpdateResponse>(
 
     const result = await db.query`SELECT id, value FROM passwords LIMIT 1`;
     if (!result.rows || result.rows.length === 0) {
-      // This should not happen in practice because getPassword() would have been called by verify() first.
+      // This should not happen if the migration has run correctly.
       return { success: false, message: "No password is set up." };
     }
     const { id, value: storedPassword } = result.rows[0];
