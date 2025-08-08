@@ -1,12 +1,6 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
 
-// Base params for all password APIs
-const passwordApiParams = {
-  auth: false, // All password endpoints are public
-  crossOrigin: true,
-};
-
 // Internal helper to get the password, creating a default if none exists.
 async function getPassword(): Promise<string> {
   const { rows } = await db.query(`SELECT value FROM passwords LIMIT 1`);
@@ -34,9 +28,14 @@ interface VerifyResponse {
  * Verifies if the provided password is correct.
  * @public
  */
-export const verify = api.POST<VerifyParams, VerifyResponse>(
-  "/password/verify",
-  passwordApiParams,
+export const verify = api<VerifyParams, VerifyResponse>(
+  {
+    expose: true,
+    method: "POST",
+    path: "/password/verify",
+    auth: false,
+    crossOrigin: true,
+  },
   async ({ password }) => {
     if (!password) {
       return { valid: false };
@@ -62,9 +61,14 @@ interface UpdateResponse {
 * Updates the password.
 * @public
 */
-export const update = api.POST<UpdateParams, UpdateResponse>(
-  "/password/update",
-  passwordApiParams,
+export const update = api<UpdateParams, UpdateResponse>(
+  {
+    expose: true,
+    method: "POST",
+    path: "/password/update",
+    auth: false,
+    crossOrigin: true,
+  },
   async ({ oldPassword, newPassword }) => {
     if (!oldPassword || !newPassword) {
       return {
