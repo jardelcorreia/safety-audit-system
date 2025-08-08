@@ -83,6 +83,19 @@ export default function AuditForm() {
     photos: [] as string[]
   });
 
+  // Load auditors list
+  const { data: auditorsData } = useQuery({
+    queryKey: ["auditors"],
+    queryFn: async () => {
+      try {
+        return await backend.auditor.list();
+      } catch (error) {
+        console.error("Failed to fetch auditors:", error);
+        return { auditors: [] };
+      }
+    },
+  });
+
   // Load existing audit for editing
   const { data: existingAudit, isLoading } = useQuery({
     queryKey: ["audit", id],
@@ -239,6 +252,8 @@ export default function AuditForm() {
     );
   }
 
+  const auditors = auditorsData?.auditors || [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -282,13 +297,41 @@ export default function AuditForm() {
 
               <div>
                 <Label htmlFor="auditor">Auditor</Label>
-                <Input
-                  id="auditor"
-                  value={formData.auditor}
-                  onChange={(e) => handleChange("auditor", e.target.value)}
-                  placeholder="Nome do auditor"
-                  required
-                />
+                {auditors.length > 0 ? (
+                  <Select value={formData.auditor} onValueChange={(value) => handleChange("auditor", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o auditor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {auditors.map((auditor) => (
+                        <SelectItem key={auditor.id} value={auditor.name}>
+                          {auditor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      id="auditor"
+                      value={formData.auditor}
+                      onChange={(e) => handleChange("auditor", e.target.value)}
+                      placeholder="Nome do auditor"
+                      required
+                    />
+                    <p className="text-sm text-gray-500">
+                      Nenhum auditor cadastrado. Você pode digitar o nome ou{" "}
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto text-blue-600"
+                        onClick={() => window.open("/auditors", "_blank")}
+                      >
+                        cadastrar auditores aqui
+                      </Button>
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>

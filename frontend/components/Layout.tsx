@@ -9,7 +9,8 @@ import {
   Upload,
   Shield,
   Menu,
-  X
+  X,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Auditorias", href: "/audits", icon: ClipboardList },
   { name: "Nova Auditoria", href: "/audits/new", icon: Plus },
+  { name: "Auditores", href: "/auditors", icon: Users },
   { name: "Análises", href: "/analytics", icon: BarChart3 },
   { name: "Importar Dados", href: "/import", icon: Upload },
 ];
