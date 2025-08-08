@@ -3,14 +3,14 @@ import { db } from "./db";
 
 // Internal helper to get the password, creating a default if none exists.
 async function getPassword(): Promise<string> {
-  const result = await db.query(`SELECT value FROM passwords LIMIT 1`);
+  const result = await db.query`SELECT value FROM passwords LIMIT 1`;
   if (result.rows && result.rows.length > 0) {
     return result.rows[0].value as string;
   }
 
   // No password found, so create the default one.
   const defaultPassword = "admin";
-  await db.exec(`INSERT INTO passwords (value) VALUES (${defaultPassword})`);
+  await db.query`INSERT INTO passwords (value) VALUES (${defaultPassword})`;
   return defaultPassword;
 }
 
@@ -80,9 +80,7 @@ export const update = api<UpdateParams, UpdateResponse>(
       };
     }
 
-    const result = await db.query(
-      `SELECT id, value FROM passwords LIMIT 1`
-    );
+    const result = await db.query`SELECT id, value FROM passwords LIMIT 1`;
     if (!result.rows || result.rows.length === 0) {
       // This should not happen in practice because getPassword() would have been called by verify() first.
       return { success: false, message: "No password is set up." };
@@ -93,9 +91,7 @@ export const update = api<UpdateParams, UpdateResponse>(
       return { success: false, message: "The old password is not correct." };
     }
 
-    await db.exec(
-      `UPDATE passwords SET value = ${newPassword} WHERE id = ${id}`
-    );
+    await db.query`UPDATE passwords SET value = ${newPassword} WHERE id = ${id}`;
 
     return { success: true, message: "Password updated successfully." };
   }
