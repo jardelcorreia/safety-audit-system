@@ -11,7 +11,9 @@ import {
   Trash2, 
   Users,
   Save,
-  X
+  X,
+  Key,
+  Lock
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import type { Auditor } from "~backend/auditor/types";
@@ -36,7 +38,16 @@ export default function Auditors() {
   const [editingAuditor, setEditingAuditor] = useState<Auditor | null>(null);
   const [formData, setFormData] = useState({ name: "" });
 
-  const { data: auditorsData, isLoading } = useQuery({
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  // State for the change password form
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const { data: auditorsData, isLoading, refetch: refetchAuditors } = useQuery({
     queryKey: ["auditors"],
     queryFn: async () => {
       try {
@@ -51,7 +62,74 @@ export default function Auditors() {
         throw error;
       }
     },
+    enabled: isAuthenticated, // Only fetch auditors if authenticated
   });
+
+  const verifyPasswordMutation = useMutation({
+    mutationFn: async (password: string) => {
+      return await backend.password.verify({ password });
+    },
+    onSuccess: (data) => {
+      if (data.valid) {
+        setIsAuthenticated(true);
+        setError("");
+        refetchAuditors();
+      } else {
+        setError("Senha incorreta");
+      }
+    },
+    onError: () => {
+      setError("Ocorreu um erro ao verificar a senha");
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    verifyPasswordMutation.mutate(password);
+  };
+
+  const updatePasswordMutation = useMutation({
+    mutationFn: async () => {
+      return await backend.password.update({ oldPassword, newPassword });
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: "Sucesso",
+          description: "Senha alterada com sucesso.",
+        });
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast({
+          title: "Erro",
+          description: data.message || "Não foi possível alterar a senha.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao alterar a senha.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As novas senhas não coincidem.",
+        variant: "destructive",
+      });
+      return;
+    }
+    updatePasswordMutation.mutate();
+  };
 
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
@@ -165,6 +243,46 @@ export default function Auditors() {
 
   const auditors = auditorsData?.auditors || [];
 
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Lock className="h-5 w-5" />
+              <span>Acesso Restrito</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Digite a senha..."
+                  required
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={verifyPasswordMutation.isPending}
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Entrar
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
@@ -177,6 +295,58 @@ export default function Auditors() {
           Novo Auditor
         </Button>
       </div>
+
+      {/* Change Password Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Alterar Senha</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="oldPassword">Senha Antiga</Label>
+                <Input
+                  id="oldPassword"
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={updatePasswordMutation.isPending}
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Alterar Senha
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Form */}
       {showForm && (
