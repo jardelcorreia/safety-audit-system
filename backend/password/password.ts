@@ -1,17 +1,33 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
 
-// Internal helper to get the password, creating a default if none exists.
-async function getPassword(): Promise<string> {
-  const result = await db.query`SELECT value FROM passwords LIMIT 1`;
+interface PasswordRow {
+  id: number;
+  value: string;
+}
+
+// Internal helper to get the password row, creating a default if none exists.
+// Uses "INSERT ... RETURNING" to be atomic and avoid transaction visibility issues.
+async function getPasswordRow(): Promise<PasswordRow> {
+  // First, try to select the existing row.
+  const result = await db.query`SELECT id, value FROM passwords LIMIT 1`;
   if (result.rows && result.rows.length > 0) {
-    return result.rows[0].value as string;
+    return result.rows[0] as PasswordRow;
   }
 
-  // No password found, so create the default one.
+  // No password found, so create the default one and return it in one step.
   const defaultPassword = "admin";
-  await db.query`INSERT INTO passwords (value) VALUES (${defaultPassword})`;
-  return defaultPassword;
+  const newRow = await db.queryRow<PasswordRow>`
+    INSERT INTO passwords (value)
+    VALUES (${defaultPassword})
+    RETURNING id, value
+  `;
+
+  if (!newRow) {
+      // This should be impossible if the INSERT succeeded.
+      throw new Error("Failed to create or retrieve default password.");
+  }
+  return newRow;
 }
 
 // Params for the verify endpoint
@@ -38,7 +54,7 @@ export const verify = api<VerifyParams, VerifyResponse>(
     if (!password) {
       return { valid: false };
     }
-    const storedPassword = await getPassword();
+    const { value: storedPassword } = await getPasswordRow();
     return { valid: password === storedPassword };
   }
 );
@@ -80,19 +96,11 @@ export const update = api<UpdateParams, UpdateResponse>(
       };
     }
 
-    const storedPassword = await getPassword();
+    const { id, value: storedPassword } = await getPasswordRow();
 
     if (oldPassword !== storedPassword) {
       return { success: false, message: "The old password is not correct." };
     }
-
-    // getPassword ensures a row exists, so we can now safely query for its ID.
-    const result = await db.query`SELECT id FROM passwords LIMIT 1`;
-    if (!result.rows || result.rows.length === 0) {
-      // This should be an impossible state.
-      return { success: false, message: "Could not find password row to update." };
-    }
-    const { id } = result.rows[0];
 
     await db.query`UPDATE passwords SET value = ${newPassword} WHERE id = ${id}`;
 
