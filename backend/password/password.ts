@@ -1,14 +1,17 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
 
-// Internal helper to get the password. It assumes the password row has been seeded.
+// Internal helper to get the password, creating a default if none exists.
 async function getPassword(): Promise<string> {
   const result = await db.query`SELECT value FROM passwords LIMIT 1`;
-  if (!result.rows || result.rows.length === 0) {
-    // This should not happen if the migration has run correctly.
-    throw new Error("Default password not found in database.");
+  if (result.rows && result.rows.length > 0) {
+    return result.rows[0].value as string;
   }
-  return result.rows[0].value as string;
+
+  // No password found, so create the default one.
+  const defaultPassword = "admin";
+  await db.query`INSERT INTO passwords (value) VALUES (${defaultPassword})`;
+  return defaultPassword;
 }
 
 // Params for the verify endpoint
@@ -77,16 +80,19 @@ export const update = api<UpdateParams, UpdateResponse>(
       };
     }
 
-    const result = await db.query`SELECT id, value FROM passwords LIMIT 1`;
-    if (!result.rows || result.rows.length === 0) {
-      // This should not happen if the migration has run correctly.
-      return { success: false, message: "No password is set up." };
-    }
-    const { id, value: storedPassword } = result.rows[0];
+    const storedPassword = await getPassword();
 
     if (oldPassword !== storedPassword) {
       return { success: false, message: "The old password is not correct." };
     }
+
+    // getPassword ensures a row exists, so we can now safely query for its ID.
+    const result = await db.query`SELECT id FROM passwords LIMIT 1`;
+    if (!result.rows || result.rows.length === 0) {
+      // This should be an impossible state.
+      return { success: false, message: "Could not find password row to update." };
+    }
+    const { id } = result.rows[0];
 
     await db.query`UPDATE passwords SET value = ${newPassword} WHERE id = ${id}`;
 
