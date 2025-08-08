@@ -10,7 +10,7 @@ async function getPassword(): Promise<string> {
 
   // No password found, so create the default one.
   const defaultPassword = "admin";
-  await db.exec(`INSERT INTO passwords (value) VALUES ($1)`, defaultPassword);
+  await db.exec(`INSERT INTO passwords (value) VALUES (${defaultPassword})`);
   return defaultPassword;
 }
 
@@ -94,9 +94,7 @@ export const update = api<UpdateParams, UpdateResponse>(
     }
 
     await db.exec(
-      `UPDATE passwords SET value = $1 WHERE id = $2`,
-      newPassword,
-      id
+      `UPDATE passwords SET value = ${newPassword} WHERE id = ${id}`
     );
 
     return { success: true, message: "Password updated successfully." };
