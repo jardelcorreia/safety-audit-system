@@ -89,10 +89,28 @@ export const update = api<UpdateParams, UpdateResponse>(
       };
     }
 
-    if (newPassword.length < 4) {
+    // Strong password validation
+    const errors = [];
+    if (newPassword.length < 8) {
+      errors.push("ter pelo menos 8 caracteres");
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      errors.push("conter pelo menos uma letra minúscula");
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      errors.push("conter pelo menos uma letra maiúscula");
+    }
+    if (!/\d/.test(newPassword)) {
+      errors.push("conter pelo menos um número");
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      errors.push("conter pelo menos um caractere especial");
+    }
+
+    if (errors.length > 0) {
       return {
         success: false,
-        message: "New password must be at least 4 characters long.",
+        message: `A nova senha deve: ${errors.join(", ")}.`,
       };
     }
 

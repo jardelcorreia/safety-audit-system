@@ -345,6 +345,9 @@ export default function Auditors() {
               </Button>
             </div>
           </form>
+          <p className="text-xs text-gray-500 mt-4">
+            A nova senha deve ter pelo menos 8 caracteres, incluindo letras maiúsculas e minúsculas, números e caracteres especiais.
+          </p>
         </CardContent>
       </Card>
 
