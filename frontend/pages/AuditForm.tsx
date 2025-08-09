@@ -96,6 +96,19 @@ export default function AuditForm() {
     },
   });
 
+  // Load predefined areas list
+  const { data: areasData } = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      try {
+        return await backend.area.list();
+      } catch (error) {
+        console.error("Failed to fetch areas:", error);
+        return { areas: [] };
+      }
+    },
+  });
+
   // Load existing audit for editing
   const { data: existingAudit, isLoading } = useQuery({
     queryKey: ["audit", id],
@@ -286,13 +299,18 @@ export default function AuditForm() {
 
               <div>
                 <Label htmlFor="area">Área</Label>
-                <Input
-                  id="area"
-                  value={formData.area}
-                  onChange={(e) => handleChange("area", e.target.value)}
-                  placeholder="Ex: Lingotamento, Aciaria..."
-                  required
-                />
+                <Select value={formData.area} onValueChange={(value) => handleChange("area", value)} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {areasData?.areas?.map((area) => (
+                      <SelectItem key={area.id} value={area.name}>
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
