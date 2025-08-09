@@ -16,7 +16,7 @@ async function getPasswordRow(): Promise<PasswordRow> {
   }
 
   // No password found, so create the default one and return it in one step.
-  const defaultPassword = "admin";
+  const defaultPassword = "ssmapecem";
   const newRow = await db.queryRow<PasswordRow>`
     INSERT INTO passwords (value)
     VALUES (${defaultPassword})

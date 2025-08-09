@@ -1,3 +1,3 @@
 INSERT INTO passwords (value)
-SELECT 'admin'
+SELECT 'ssmapecem'
 WHERE NOT EXISTS (SELECT 1 FROM passwords);
