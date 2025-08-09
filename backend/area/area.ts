@@ -7,7 +7,7 @@ interface ListResponse {
 }
 
 // Lists all predefined areas.
-export const list = api<undefined, ListResponse>(
+export const list = api<void, ListResponse>(
   { expose: true, method: "GET", path: "/areas" },
   async () => {
     const result = await areaDB.query<Area>`
