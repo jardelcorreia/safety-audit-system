@@ -35,7 +35,6 @@ const BROWSER = typeof globalThis === "object" && ("window" in globalThis);
 export class Client {
     public readonly audit: audit.ServiceClient
     public readonly auditor: auditor.ServiceClient
-    public readonly password: password.ServiceClient
     private readonly options: ClientOptions
     private readonly target: string
 
@@ -52,7 +51,6 @@ export class Client {
         const base = new BaseClient(this.target, this.options)
         this.audit = new audit.ServiceClient(base)
         this.auditor = new auditor.ServiceClient(base)
-        this.password = new password.ServiceClient(base)
     }
 
     /**
@@ -292,47 +290,6 @@ export namespace auditor {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/auditors/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auditor_update_update>
-        }
-    }
-}
-
-/**
- * Import the endpoint handlers to derive the types for the client.
- */
-import {
-    update as api_password_password_update,
-    verify as api_password_password_verify
-} from "~backend/password/password";
-
-export namespace password {
-
-    export class ServiceClient {
-        private baseClient: BaseClient
-
-        constructor(baseClient: BaseClient) {
-            this.baseClient = baseClient
-            this.update = this.update.bind(this)
-            this.verify = this.verify.bind(this)
-        }
-
-        /**
-         * Updates the password.
-         * @public
-         */
-        public async update(params: RequestType<typeof api_password_password_update>): Promise<ResponseType<typeof api_password_password_update>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/password/update`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_password_password_update>
-        }
-
-        /**
-         * Verifies if the provided password is correct.
-         * @public
-         */
-        public async verify(params: RequestType<typeof api_password_password_verify>): Promise<ResponseType<typeof api_password_password_verify>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/password/verify`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_password_password_verify>
         }
     }
 }

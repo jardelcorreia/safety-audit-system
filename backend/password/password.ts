@@ -102,7 +102,7 @@ export const update = api<UpdateParams, UpdateResponse>(
       return { success: false, message: "The old password is not correct." };
     }
 
-    await db.query`UPDATE passwords SET value = ${newPassword} WHERE id = ${id}`;
+    await db.exec`UPDATE passwords SET value = ${newPassword} WHERE id = ${id}`;
 
     return { success: true, message: "Password updated successfully." };
   }
